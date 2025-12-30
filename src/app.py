@@ -8,6 +8,7 @@ for extracurricular activities at Mergington High School.
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
+from pydantic import BaseModel
 import os
 from pathlib import Path
 
@@ -105,3 +106,20 @@ def signup_for_activity(activity_name: str, email: str):
     # Add student
     activity["participants"].append(email)
     return {"message": f"Signed up {email} for {activity_name}"}
+
+
+# Request model for unregister
+class UnregisterRequest(BaseModel):
+    name: str
+
+# Unregister endpoint
+@app.post("/activities/{activity_name}/unregister")
+def unregister_participant(activity_name: str, req: UnregisterRequest):
+    """Remove a participant from an activity"""
+    if activity_name not in activities:
+        raise HTTPException(status_code=404, detail="Activity not found")
+    activity = activities[activity_name]
+    if req.name not in activity["participants"]:
+        raise HTTPException(status_code=404, detail="Participant not found in activity")
+    activity["participants"].remove(req.name)
+    return {"message": f"Unregistered {req.name} from {activity_name}", "participants": activity["participants"]}
