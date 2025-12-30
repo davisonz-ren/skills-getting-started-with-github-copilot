@@ -3,6 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const activitySelect = document.getElementById("activity");
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
+  // Removed global participantsList; handled per activity card
 
   // Function to fetch activities from API
   async function fetchActivities() {
@@ -20,14 +21,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const spotsLeft = details.max_participants - details.participants.length;
 
-        // Build participants list HTML
-        let participantsHTML = "";
+        // Build participants list HTML (always show with delete icon)
+        let participantsHTML = '';
         if (details.participants.length > 0) {
           participantsHTML = `
             <div class="participants-section">
               <strong>Participants:</strong>
-              <ul class="participants-list">
-                ${details.participants.map(email => `<li>${email}</li>`).join("")}
+              <ul class="participants-list" style="list-style-type: none; padding-left: 0;">
+                ${details.participants.map(participant => `
+                  <li style="display: flex; align-items: center;">
+                    <span>${participant}</span>
+                    <button style="margin-left: 8px; background: none; border: none; cursor: pointer;" title="Remove participant" onclick="unregisterParticipant('${participant}', '${name}')">🗑️</button>
+                  </li>
+                `).join('')}
               </ul>
             </div>
           `;
@@ -101,6 +107,27 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Error signing up:", error);
     }
   });
+
+  // Unregister participant function
+  window.unregisterParticipant = function(name, activity) {
+    fetch(`/activities/${encodeURIComponent(activity)}/unregister`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name }),
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error('Failed to unregister');
+        return response.json();
+      })
+      .then(() => {
+        fetchActivities();
+      })
+      .catch((error) => {
+        alert('Error: ' + error.message);
+      });
+  };
 
   // Initialize app
   fetchActivities();
